@@ -12,7 +12,7 @@ def jacobian(x_shape, y_shape):
     row2 = np.stack((zeros, x, zeros, y, zeros, ones), axis=2)
     jacob = np.stack((row1, row2), axis=2)
 
-    return jocob
+    return jacob
 
 
 jacobian(15, 25)
