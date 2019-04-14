@@ -5,8 +5,8 @@ def jacobian(x_shape, y_shape):
     x = np.array(range(x_shape))
     y = np.array(range(y_shape))
     x, y = np.meshgrid(x, y) 
-    ones = np.ones((300, 200))
-    zeros = np.zeros((300, 200))
+    ones = np.ones((y_shape, x_shape))
+    zeros = np.zeros((y_shape, x_shape))
 
     row1 = np.stack((x, zeros, y, zeros, ones, zeros), axis=2)
     row2 = np.stack((zeros, x, zeros, y, zeros, ones), axis=2)
