@@ -24,14 +24,20 @@ def affineLKtracker(img, tmp, rect, p):
     warp_mat = np.array([[1+p[0], p[2], p[4]], [p[1], 1+p[3], p[5]]])
 
     # Calculate warp image
-    warp_img = cv2.warpAffine(img, warp_mat, (cols, rows))
-    diff = tmp.astype(int) - warp_img.astype(int)
+    warp_img = cv2.warpAffine(img, warp_mat, (cols*3, rows*3), flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)
+    diff = tmp.astype(int) - warp_img.astype(int)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
 
     # Calculate warp gradient of image
-    grad_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=5)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
-    grad_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=5)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
-    grad_x_warp = cv2.warpAffine(grad_x, warp_mat, (cols, rows))
-    grad_y_warp = cv2.warpAffine(grad_y, warp_mat, (cols, rows))
+    grad_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=5)
+    grad_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=5)
+    grad_x_warp = cv2.warpAffine(grad_x, warp_mat, (cols*3, rows*3),
+                                 flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
+    grad_y_warp = cv2.warpAffine(grad_y, warp_mat, (cols*3, rows*3),
+                                 flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
+
+    # while True:
+    #     cv2.imshow("grad", grad_y)
+    #     cv2.waitKey(1)
     
     # Calculate Jacobian
     jacob = jacobian(cols, rows)
