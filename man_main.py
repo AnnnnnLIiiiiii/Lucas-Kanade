@@ -29,8 +29,8 @@ def click_and_crop(event, x, y, flags, param):
         cv2.imshow("image", image)
 
 frame_increase = 0
-frame_num = str(20+frame_increase).zfill(4) + ".jpg"
-cap = cv2.VideoCapture("/home/an/Desktop/673/Project 4/car/frame" + frame_num)
+frame_num = str(140+frame_increase).zfill(4) + ".jpg"
+cap = cv2.VideoCapture("./human/" + frame_num)
 success, image = cap.read()
 
 count = 0
@@ -65,14 +65,14 @@ while success:
         if len(refPt) == 2:
             crop = clone[refPt[0][1]:refPt[1][1], refPt[0][0]:refPt[1][0]]
             template = crop.copy()
-            cv2.imwrite('/home/an/Desktop/673/Project 4/template.jpg', crop)
+            cv2.imwrite('./template.jpg', crop)
             print("top_left(x,y) and bottom_right(x,y) is")
             print(refPt)
             cv2.waitKey(0)
         count += 1
 
     else:
-        for k in range(30):
+        for k in range(50):
             p = affineLKtracker(clone, template, refPt, p)
         warp_mat = np.array([[1 + p[0], p[2], p[4]], [p[1], 1 + p[3], p[5]]])
         # newRefPt = []
@@ -94,8 +94,8 @@ while success:
 
 
     frame_increase += 1
-    frame_num = str(20 + frame_increase).zfill(4) + ".jpg"
-    cap = cv2.VideoCapture("/home/an/Desktop/673/Project 4/car/frame" + frame_num)
+    frame_num = str(140 + frame_increase).zfill(4) + ".jpg"
+    cap = cv2.VideoCapture("./human/" + frame_num)
     success, image = cap.read()
 
 cv2.destroyAllWindows()

@@ -20,25 +20,29 @@ def affineLKtracker(img, tmp, rect, p):
 
     # Initialization
     rows, cols = tmp.shape
-    img_crop = img[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
+    # img_crop = img[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
     warp_mat = np.array([[1+p[0], p[2], p[4]], [p[1], 1+p[3], p[5]]])
 
     # Calculate warp image
-    warp_img = cv2.warpAffine(img, warp_mat, (cols*3, rows*3), flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)
+    # warp_img = cv2.warpAffine(img, warp_mat, (cols*3, rows*3), flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)
+    warp_img = cv2.warpAffine(img, warp_mat, (0, 0), flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)
     diff = tmp.astype(int) - warp_img.astype(int)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
+    # print(diff)
+    cv2.imshow("error", diff)
 
     # Calculate warp gradient of image
     grad_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=5)
     grad_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=5)
-    grad_x_warp = cv2.warpAffine(grad_x, warp_mat, (cols*3, rows*3),
+    # grad_x_warp = cv2.warpAffine(grad_x, warp_mat, (cols*3, rows*3),
+    #                              flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
+    # grad_y_warp = cv2.warpAffine(grad_y, warp_mat, (cols*3, rows*3),
+    #                              flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
+    grad_x_warp = cv2.warpAffine(grad_x, warp_mat, (0, 0),
                                  flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
-    grad_y_warp = cv2.warpAffine(grad_y, warp_mat, (cols*3, rows*3),
+    grad_y_warp = cv2.warpAffine(grad_y, warp_mat, (0, 0),
                                  flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
 
-    # while True:
-    #     cv2.imshow("grad", grad_y)
-    #     cv2.waitKey(1)
-    
+
     # Calculate Jacobian
     jacob = jacobian(cols, rows)
 
@@ -50,11 +54,13 @@ def affineLKtracker(img, tmp, rect, p):
 
     # Compute Hessian matrix
     hessian_matrix = np.matmul(steepest_descents_trans, steepest_descents).sum((0,1))
- 
+    # print(hessian_matrix)
     # Compute steepest-gradient-descent update
     diff = diff.reshape((rows, cols, 1, 1))
     update = (steepest_descents_trans * diff).sum((0,1))
     d_p = np.matmul(np.linalg.pinv(hessian_matrix), update).reshape((-1))
+    # print(d_p)
+    # print(update)
     p += d_p
 
     return p

@@ -34,71 +34,65 @@ cap = cv2.VideoCapture("/home/an/Desktop/673/Project 4/car/frame" + frame_num)
 success, image = cap.read()
 
 
-def lucas_kanade(template, current):
+def lucas_kanade(img, tmp, rect, p):
     # Initialization
-    err_threshold = 1
-    p = np.zeros((6,1))
+    rows, cols = tmp.shape
+    img_crop = img[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
     warp_mat = np.array([[1 + p[0], p[2], p[4]], [p[1], 1 + p[3], p[5]]])
-    d_p = 10 * np.ones((6,1))
 
-    rows, cols = template.shape
+    # Calculate warp image
+    warp_img = cv2.warpAffine(img, warp_mat, (cols * 3, rows * 3), flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)
+    error_img = tmp.astype(int) - warp_img.astype(int)[rect[0][1]:rect[1][1], rect[0][0]:rect[1][0]]
 
-    # Calculate error image
+    # Calculate warp gradient of image
+    grad_x = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=5)
+    grad_y = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=5)
+    grad_x_warp = cv2.warpAffine(grad_x, warp_mat, (cols * 3, rows * 3),
+                                 flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1],
+                  rect[0][0]:rect[1][0]]
+    grad_y_warp = cv2.warpAffine(grad_y, warp_mat, (cols * 3, rows * 3),
+                                 flags=cv2.INTER_CUBIC + cv2.WARP_INVERSE_MAP)[rect[0][1]:rect[1][1],
+                  rect[0][0]:rect[1][0]]
 
-    # while np.linalg.norm(d_p, 2) > err_threshold:
-    for k in range(10):
+    # Calculate the steepest gradient descent and Hessian matrix
 
-        # Calculate error image
-        warp_current = cv2.warpAffine(current, warp_mat, (cols, rows))
-        error_img = template - warp_current
+    # steepest_descent_1 = np.zeros(template.shape)
+    # steepest_descent_2 = np.zeros(template.shape)
+    # steepest_descent_3 = np.zeros(template.shape)
+    # steepest_descent_4 = np.zeros(template.shape)
+    # steepest_descent_5 = np.zeros(template.shape)
+    # steepest_descent_6 = np.zeros(template.shape)
 
-        # Calculate gradient of the image, and warp them by current warp_mat
-        grad_x = cv2.Sobel(current, cv2.CV_64F, 1, 0, ksize=5)
-        grad_y = cv2.Sobel(current, cv2.CV_64F, 0, 1, ksize=5)
-        warp_grad_x = cv2.warpAffine(grad_x, warp_mat, (cols, rows))
-        warp_grad_y = cv2.warpAffine(grad_y, warp_mat, (cols, rows))
+    hessian_matrix = np.zeros((6,6))
+    update = np.zeros((6,1))
+    for y in range(current.shape[0]):
+        for x in range(current.shape[1]):
+            # Calculate Jacobian
+            jacobian = np.array([[x, 0, y, 0, 1, 0], [0, x, 0, y, 0, 1]])
 
-        # Calculate the steepest gradient descent and Hessian matrix
+            # Set gradient of a pixel into 1 by 2 vector
+            grad = np.array([grad_x_warp[y, x], grad_y_warp[y, x]])
 
-        steepest_descent_1 = np.zeros(template.shape)
-        steepest_descent_2 = np.zeros(template.shape)
-        steepest_descent_3 = np.zeros(template.shape)
-        steepest_descent_4 = np.zeros(template.shape)
-        steepest_descent_5 = np.zeros(template.shape)
-        steepest_descent_6 = np.zeros(template.shape)
+            # steepest_descent is a 1 by 6 vector (grad * jacobian), yet for convenience reshape it to 6 by 1
+            steepest_descents = np.dot(grad, jacobian).reshape(6,1)
 
-        hessian_matrix = np.zeros((6,6))
-        update = np.zeros((6,1))
-        for d_y in range(current.shape[0]):
-            for d_x in range(current.shape[1]):
-                x = refPt[0][0] + d_x
-                y = refPt[0][1] + d_y
-                # Calculate Jacobian
-                jacobian = np.array([[x, 0, y, 0, 1, 0], [0, x, 0, y, 0, 1]])
+            # Compute Hessian matrix
+            hessian_matrix += np.dot(steepest_descents, steepest_descents.T)
 
-                # Set gradient of a pixel into 1 by 2 vector
-                grad = np.array([warp_grad_x[d_y, d_x], warp_grad_y[d_y, d_x]])
+            # Compute steepest-gradient-descent update
+            update += steepest_descents * error_img[y,x]
+            print(update)
+            d_p = np.dot(np.linalg.pinv(hessian_matrix), update)
 
-                # steepest_descent is a 1 by 6 vector (grad * jacobian), yet for convenience reshape it to 6 by 1
-                steepest_descents = np.dot(grad, jacobian).reshape(6,1)
+            # # Seperate 6 steepest descent images
+            # steepest_descent_1[d_y, d_x] = steepest_descents[0]
+            # steepest_descent_2[d_y, d_x] = steepest_descents[1]
+            # steepest_descent_3[d_y, d_x] = steepest_descents[2]
+            # steepest_descent_4[d_y, d_x] = steepest_descents[3]
+            # steepest_descent_5[d_y, d_x] = steepest_descents[4]
+            # steepest_descent_6[d_y, d_x] = steepest_descents[5]
 
-                # Compute Hessian matrix
-                hessian_matrix += np.dot(steepest_descents, steepest_descents.T)
-
-                # Compute steepest-gradient-descent update
-                update += steepest_descents * (template[d_y, d_x] - warp_current[d_y, d_x])
-                print(update)
-                d_p = np.dot(np.linalg.pinv(hessian_matrix), update)
-
-                # Seperate 6 steepest descent images
-                steepest_descent_1[d_y, d_x] = steepest_descents[0]
-                steepest_descent_2[d_y, d_x] = steepest_descents[1]
-                steepest_descent_3[d_y, d_x] = steepest_descents[2]
-                steepest_descent_4[d_y, d_x] = steepest_descents[3]
-                steepest_descent_5[d_y, d_x] = steepest_descents[4]
-                steepest_descent_6[d_y, d_x] = steepest_descents[5]
-
-        p += d_p
+    p += d_p
 
     return p
 
